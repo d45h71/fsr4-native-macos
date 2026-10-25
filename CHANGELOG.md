@@ -1,5 +1,15 @@
 # Releases
 
+## v2.1 (2026-10-25)
+
+- CrossOver 26 support: D3DMetal is found under
+  `lib64/apple_gptk/external` (and `lib64/apple_gptk3`). CrossOver 26 removed
+  `D3DMETAL_FRAMEWORK_PATH`, so the installer patches the app's own
+  `Versions/A/D3DMetal` in place, keeps the original next to it and restores it
+  on removal; CrossOver 24/25 keep the copied-framework redirect. The hook stays
+  inert in bottles without `FSR4_ROOT`, and restore leaves the framework patched
+  while another bottle still uses it.
+
 ## v2.0 (2026-10-25)
 
 Added the FSR 4.1.2 INT8 Lite path from the supplied AMD driver libraries.

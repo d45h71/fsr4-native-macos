@@ -38,18 +38,16 @@ def run(cmd, **kw):
 
 def build_payload(rev: str, dest: Path) -> int:
     """Files of `rev` that the CrossOver install needs, as a tar.gz without a
-    top-level folder. Returns the file count."""
-    tar = subprocess.check_output(["git", "archive", "--format=tar", rev], cwd=ROOT)
+    top-level folder. Returns the file count. A ZIP download has no .git;
+    package_release.source_files() then uses the working tree instead."""
     count = 0
-    with tarfile.open(fileobj=io.BytesIO(tar)) as src, tarfile.open(dest, "w:gz", compresslevel=9) as dst:
-        for member in src.getmembers():
-            if not member.isfile() or not package_release.included(member.name):
-                continue
-            info = tarfile.TarInfo(member.name)
-            info.size = member.size
-            info.mode = member.mode
+    with tarfile.open(dest, "w:gz", compresslevel=9) as dst:
+        for path, data, mode in package_release.source_files(rev):
+            info = tarfile.TarInfo(path)
+            info.size = len(data)
+            info.mode = mode
             info.mtime = 1767225600  # 2026-01-01: reproducible archive
-            dst.addfile(info, src.extractfile(member))
+            dst.addfile(info, io.BytesIO(data))
             count += 1
         guide = (ROOT / "tools" / "crossover" / "INSTALL.md").read_bytes()
         info = tarfile.TarInfo("INSTALL.md")
@@ -115,7 +113,11 @@ def build_app(version: str, rev: str, out: Path) -> Path:
         shutil.copytree(lproj, resources / lproj.name)
     with tempfile.TemporaryDirectory() as scratch:
         build_icon(resources, Path(scratch))
-    commit = subprocess.check_output(["git", "rev-parse", "--short", rev], cwd=ROOT, text=True).strip()
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "--short", rev], cwd=ROOT,
+                                         text=True, stderr=subprocess.DEVNULL).strip()
+    except (OSError, subprocess.CalledProcessError):
+        commit = "worktree"  # ZIP download / exported folder without .git
     count = build_payload(rev, resources / "payload.tar.gz")
     (resources / "payload.json").write_text(json.dumps({"version": version, "commit": commit}) + "\n")
     print(f"payload: {count} files from {commit}, "

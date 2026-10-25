@@ -366,7 +366,8 @@ bit-stable across runs, per-channel means match the WARP golden to 4 digits
 - FP8/WMMA model path intentionally not ported (AMD-only intrinsics; the
   selector never picks it on non-AMD anyway).
 - CrossOver integration is separate from this CLI: see **docs/CROSSOVER.md**.
-  `CrossOver.app` is not modified; one bottle is pointed at a copied D3DMetal.
+  CrossOver 24/25 is not modified (one bottle points at a copied D3DMetal);
+  CrossOver 26 patches only its D3DMetal binary in place and restores it.
 - Perf tuning (fused passes, memory layout) deliberately deferred.
 
 ---

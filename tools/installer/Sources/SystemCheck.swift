@@ -38,7 +38,10 @@ enum SystemCheck {
     static let crossoverBundleID = "com.codeweavers.CrossOver"
     static let crossoverMarker = "Contents/SharedSupport/CrossOver"
     /// D3DMetal inside a CrossOver.app, in order of preference (as in crossover_fsr4.py).
-    static let d3dmetalPaths = ["Contents/SharedSupport/CrossOver/lib/apple_gptk/external/D3DMetal.framework",
+    /// CrossOver 26 moved GPTK 3 to lib64; earlier builds ship it under lib.
+    static let d3dmetalPaths = ["Contents/SharedSupport/CrossOver/lib64/apple_gptk/external/D3DMetal.framework",
+                                "Contents/SharedSupport/CrossOver/lib64/apple_gptk3/external/D3DMetal.framework",
+                                "Contents/SharedSupport/CrossOver/lib/apple_gptk/external/D3DMetal.framework",
                                 "Contents/SharedSupport/CrossOver/lib/apple_gptk3/external/D3DMetal.framework"]
     static let chosenCrossOverKey = "CrossOverApp"
 

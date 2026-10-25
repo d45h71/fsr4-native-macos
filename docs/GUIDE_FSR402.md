@@ -225,9 +225,12 @@ tools/bin/fsr4mac testcases/testcase_quality_720to1080 /tmp/fsr4-bench --i8mpp -
 DLSS в CrossOver Preview реализован внутри D3DMetal через временной скейлер
 MetalFX. Хук `libfsr4hook.dylib` подменяет у этого скейлера кодирование кадра
 на FSR 4 — тот же пайплайн, что у `fsr4mac --i8mpp`, плюс резкость RCAS 0.4
-по умолчанию (своей настройки резкости у DLSS нет). `CrossOver.app` не
-меняется: установщик копирует D3DMetal в `dist/crossover/`, добавляет в копию
-загрузку хука и через переменные окружения направляет на неё одну бутылку.
+по умолчанию (своей настройки резкости у DLSS нет). На CrossOver 24/25
+`CrossOver.app` не меняется: установщик копирует D3DMetal в `dist/crossover/`,
+добавляет в копию загрузку хука и через переменные окружения направляет на неё
+одну бутылку. На CrossOver 26 `libd3dshared` больше не читает
+`D3DMETAL_FRAMEWORK_PATH`, поэтому установщик патчит бинарник D3DMetal внутри
+приложения, хранит оригинал рядом и возвращает его при `restore`.
 Устройство подробно — в [CROSSOVER.md](CROSSOVER.md).
 
 ### 8.1. Подготовка
@@ -300,8 +303,8 @@ grep -n -E '^\[|fsr4-mac|FSR4_|D3DMETAL|D3DM_ENABLE_METALFX' "$HOME/Library/Appl
 
 Последним заголовком секции в выводе должен быть `[EnvironmentVariables]`, а
 после него — `D3DM_ENABLE_METALFX`, строка `;; fsr4-mac` и ключи
-`D3DMETAL_FRAMEWORK_PATH`, `FSR4_HOOK_LOG`, `FSR4_ROOT`, `FSR4_REPLACE`,
-`FSR4_PANEL`.
+`D3DMETAL_FRAMEWORK_PATH` (CrossOver 24/25) или `FSR4_FRAMEWORK` (CrossOver 26),
+`FSR4_HOOK_LOG`, `FSR4_ROOT`, `FSR4_REPLACE`, `FSR4_PANEL`.
 
 Папку репозитория после установки не переносите: в бутылку записаны
 абсолютные пути. Если перенесли — повторите `install --panel` из нового места.
@@ -352,8 +355,8 @@ CrossOver.
 | `FSR4_SETTINGS` | путь, `none` | где лежат настройки панели (по умолчанию `dist/crossover/panel.conf`); `none` — не читать их |
 
 Настройки из панели важнее `FSR4_SHARPNESS` и `FSR4_RCAS`. Ключи
-`D3DMETAL_FRAMEWORK_PATH`, `FSR4_HOOK_LOG` и `FSR4_ROOT` пишет установщик —
-вручную их не меняйте.
+`D3DMETAL_FRAMEWORK_PATH` (24/25) или `FSR4_FRAMEWORK` (26), `FSR4_HOOK_LOG` и
+`FSR4_ROOT` пишет установщик — вручную их не меняйте.
 
 ### 8.5. Откат
 
@@ -363,12 +366,13 @@ python3 tools/crossover/crossover_fsr4.py restore
 python3 tools/crossover/crossover_fsr4.py restore --bottle "$HOME/Library/Application Support/CrossOver/Bottles/<бутылка>/cxbottle.conf"
 ```
 
-`restore` убирает из конфига строку `;; fsr4-mac` и пять ключей установщика
-(`D3DMETAL_FRAMEWORK_PATH`, `FSR4_HOOK_LOG`, `FSR4_ROOT`, `FSR4_REPLACE`,
-`FSR4_PANEL`), и бутылка снова берёт D3DMetal из CrossOver. Добавленные вручную
-переменные вроде `FSR4_SHARPNESS` остаются, но без хука ни на что не влияют.
-Файлы в `dist/crossover/` остаются на диске. После отката полностью
-перезапустите CrossOver.
+`restore` убирает из конфига строку `;; fsr4-mac` и ключи установщика
+(`D3DMETAL_FRAMEWORK_PATH` или `FSR4_FRAMEWORK`, `FSR4_HOOK_LOG`, `FSR4_ROOT`,
+`FSR4_REPLACE`, `FSR4_PANEL`), и бутылка снова берёт D3DMetal из CrossOver.
+На CrossOver 26 `restore` также возвращает оригинальный бинарник D3DMetal.
+Добавленные вручную переменные вроде `FSR4_SHARPNESS` остаются, но без хука ни
+на что не влияют. Файлы в `dist/crossover/` остаются на диске. После отката
+полностью перезапустите CrossOver.
 
 ## 9. Обновление
 

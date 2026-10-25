@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import io
 import json
+import stat
 import subprocess
 import tarfile
 import zipfile
@@ -28,6 +29,42 @@ EXCLUDE_PREFIXES = (
 
 def included(path: str) -> bool:
     return not path.startswith(EXCLUDE_PREFIXES)
+
+
+def _worktree_files():
+    """Payload files from the working tree when this copy has no git metadata.
+
+    A released zip is extracted without .git; the installer app must still be
+    buildable there. Generated caches are left out the same way .gitignore and
+    the release zip leave them out."""
+    generated = ("build", "dist", "out", "testcases", ".git")
+    for path in sorted(ROOT.rglob("*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        parts = relative.split("/")
+        if parts[0] in generated or ".git" in parts or "__pycache__" in parts:
+            continue
+        if relative.endswith((".pyc", ".DS_Store")) or not included(relative):
+            continue
+        yield relative, path.read_bytes(), stat.S_IMODE(path.stat().st_mode)
+
+
+def source_files(rev: str = "HEAD"):
+    """Yield (path, data, mode) for the release payload.
+
+    Uses committed files when git is available and falls back to the working
+    tree (including local fixes) for a ZIP download or an exported folder."""
+    try:
+        archive = subprocess.check_output(["git", "archive", "--format=tar", rev], cwd=ROOT,
+                                          stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.CalledProcessError):
+        yield from _worktree_files()
+        return
+    with tarfile.open(fileobj=io.BytesIO(archive)) as src:
+        for member in src.getmembers():
+            if member.isfile() and included(member.name):
+                yield member.name, src.extractfile(member).read(), member.mode
 
 
 def model_payload(root=ROOT):
@@ -75,18 +112,14 @@ def main():
     name = f"fsr4-mac-{args.version}-crossover"
     out = Path(args.out) / f"{name}.zip"
     out.parent.mkdir(parents=True, exist_ok=True)
-    tar = subprocess.check_output(["git", "archive", "--format=tar", args.rev], cwd=ROOT)
     count = 0
     model_files=model_payload()
-    with tarfile.open(fileobj=io.BytesIO(tar)) as src, \
-            zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as dst:
-        for member in src.getmembers():
-            if not member.isfile() or not included(member.name):
-                continue
-            info = zipfile.ZipInfo(f"{name}/{member.name}", date_time=(2026, 1, 1, 0, 0, 0))
-            info.external_attr = (0o100000 | member.mode) << 16  # keep exec bits for tools/bin
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as dst:
+        for path, data, mode in source_files(args.rev):
+            info = zipfile.ZipInfo(f"{name}/{path}", date_time=(2026, 1, 1, 0, 0, 0))
+            info.external_attr = (0o100000 | mode) << 16  # keep exec bits for tools/bin
             info.compress_type = zipfile.ZIP_DEFLATED
-            dst.writestr(info, src.extractfile(member).read())
+            dst.writestr(info, data)
             count += 1
         guide = (ROOT / "tools" / "crossover" / "INSTALL.md").read_bytes()
         info = zipfile.ZipInfo(f"{name}/INSTALL.md", date_time=(2026, 1, 1, 0, 0, 0))

@@ -15,11 +15,11 @@ sequence, 40% less. Method and limits: [FSR 4.1.2 stability](docs/FSR412_STABILI
 
 - Mac with Apple Silicon (fastest on M5; M1–M4 use the `simd` half-matrix backend, not benchmarked on those chips yet, see [hardware](docs/HARDWARE.md))
 - macOS 26+, Xcode 26+ with Metal Toolchain, Python 3
-- For games: CrossOver 24+ and Rosetta 2
+- For games: CrossOver 24+ (26 supported) and Rosetta 2
 
 ## Easiest: the FSR4 Installer app
 
-1. Download **FSR4-Installer-v2.0.dmg** from the
+1. Download **FSR4-Installer-v2.1.dmg** from the
    [latest release](https://github.com/UzenUPoZiTiV4ik/fsr4-native-macos/releases/latest)
    and drag **FSR4 Installer** to Applications.
 2. First launch: the app is not notarized, so macOS blocks it. Open
@@ -33,9 +33,10 @@ sequence, 40% less. Method and limits: [FSR 4.1.2 stability](docs/FSR412_STABILI
 
 ![FSR4 Installer](docs/images/installer.png)
 
-The app keeps its files in `~/Library/Application Support/fsr4-native-macos`
-and never modifies CrossOver.app. **Remove…** puts the bottle back on
-CrossOver's own D3DMetal. Step-by-step guide:
+The app keeps its files in `~/Library/Application Support/fsr4-native-macos`.
+On CrossOver 24/25 it does not modify CrossOver.app; on CrossOver 26 it
+patches only CrossOver's D3DMetal binary and keeps the original for
+**Remove…**, which puts the bottle and the framework back. Step-by-step guide:
 [docs/GUIDE.md](docs/GUIDE.md) (Russian),
 [tools/crossover/INSTALL.md](tools/crossover/INSTALL.md) (English).
 

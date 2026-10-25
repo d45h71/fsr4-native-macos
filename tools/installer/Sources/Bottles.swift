@@ -4,7 +4,8 @@ import Foundation
 struct Bottle: Identifiable, Hashable, Sendable {
     let name: String
     let conf: URL
-    /// D3DMETAL_FRAMEWORK_PATH is set: the bottle loads the patched D3DMetal.
+    /// D3DMETAL_FRAMEWORK_PATH (24/25) or FSR4_FRAMEWORK (26) is set: the
+    /// bottle loads a patched D3DMetal.
     let installed: Bool
     /// FSR4_ROOT: the folder the bottle's FSR files come from.
     let root: String?
@@ -102,7 +103,9 @@ enum Bottles {
         return Bottle(
             name: conf.deletingLastPathComponent().lastPathComponent,
             conf: conf,
-            installed: values["D3DMETAL_FRAMEWORK_PATH"] != nil,
+            // CrossOver 24/25 point the bottle at a copied framework; 26
+            // patches the app's framework and records it in FSR4_FRAMEWORK.
+            installed: values["D3DMETAL_FRAMEWORK_PATH"] != nil || values["FSR4_FRAMEWORK"] != nil,
             root: values["FSR4_ROOT"],
             profile: values["FSR4_PROFILE"],
             panel: values["FSR4_PANEL"] == "1")

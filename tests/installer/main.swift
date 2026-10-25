@@ -72,6 +72,13 @@ do {
     let games = list.first { $0.name == "Игры" }
     check(games?.installed == true && games?.root == "/x" && games?.profile == "exact-fast" && games?.panel == true,
           "installed bottle: \(String(describing: games))")
+    let modern = scratch.appendingPathComponent("Modern/cxbottle.conf")
+    write("""
+    "FSR4_FRAMEWORK" = "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/lib64/apple_gptk/external/D3DMetal.framework/Versions/A/D3DMetal"
+    "FSR4_ROOT" = "/x"
+    "FSR4_PROFILE" = "int8-lite"
+    """, modern)
+    check(Bottles.bottle(conf: modern)?.installed == true, "CrossOver 26 FSR4_FRAMEWORK marks installed")
 }
 
 // MARK: External bottle discovery (issue #11)
@@ -216,9 +223,16 @@ do {
     let apps = SystemCheck.crossoverApps(in: [system, home])
     check(apps.map(\.lastPathComponent) == ["CrossOver Preview-20261006.app", "CrossOver_patched.app", "CrossOver.app"],
           "renamed copies found, launchers skipped: \(apps.map(\.path))")
+    check(SystemCheck.d3dmetal(in: dated)?.path.contains("CrossOver/lib64/") == true, "CrossOver 26 lib64 path")
     check(SystemCheck.d3dmetal(in: dated)?.path.hasSuffix("apple_gptk/external/D3DMetal.framework") == true, "GPTK 1 path")
     check(SystemCheck.d3dmetal(in: nested)?.path.hasSuffix("apple_gptk3/external/D3DMetal.framework") == true, "GPTK 3 path")
     check(SystemCheck.d3dmetal(in: patched) == nil, "no D3DMetal")
+    let legacy = scratch.appendingPathComponent("legacy/CrossOver_legacy.app")
+    try! FileManager.default.createDirectory(at: legacy.appendingPathComponent(SystemCheck.crossoverMarker),
+                                             withIntermediateDirectories: true)
+    try! FileManager.default.createDirectory(at: legacy.appendingPathComponent(SystemCheck.d3dmetalPaths[2]),
+                                             withIntermediateDirectories: true)
+    check(SystemCheck.d3dmetal(in: legacy)?.path.contains("CrossOver/lib/") == true, "CrossOver 24/25 lib path")
     let standard = system.appendingPathComponent("CrossOver.app")
     try! FileManager.default.createDirectory(at: standard.appendingPathComponent(SystemCheck.crossoverMarker),
                                              withIntermediateDirectories: true)
